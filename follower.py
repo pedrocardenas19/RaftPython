@@ -1,25 +1,26 @@
 from flask import Flask, request, jsonify
-import sys
+import threading
+import time
 
 app = Flask(__name__)
 
 class Follower:
     def __init__(self, id):
         self.id = id
-        self.term = 0
-        self.store = {}  # Diccionario clave-valor para almacenar los datos replicados
+        self.store = {}  # Diccionario para almacenar datos replicados
 
     def append_entries(self, key, value):
-        # Almacenar la clave-valor replicada por el líder
+        # Almacenar el par clave-valor replicado
         self.store[key] = value
         print(f"Follower {self.id}: Clave-valor replicada {key}: {value}")
         return True
 
-    def get_data(self, key):
-        # Devolver el valor asociado a la clave si existe
-        return {"key": key, "value": self.store.get(key, "Clave no encontrada")}
+    def print_store(self):
+        while True:
+            print(f"Follower {self.id} - Almacén actual: {self.store}")
+            time.sleep(10)  # Imprime cada 10 segundos
 
-follower = None  # Variable global para la instancia del follower
+follower = None
 
 @app.route('/append_entries', methods=['POST'])
 def handle_append_entries():
@@ -32,21 +33,22 @@ def handle_append_entries():
 @app.route('/read_data', methods=['GET'])
 def handle_read_request():
     key = request.args.get("key")
-    response = follower.get_data(key)
-    return jsonify(response)
-
-@app.route('/heartbeat', methods=['POST'])
-def handle_heartbeat():
-    data = request.json
-    print(f"Follower {follower.id} recibió heartbeat de líder {data.get('leader_id')} en término {data.get('term')}")
-    return jsonify({"success": True})
+    if key in follower.store:
+        return jsonify({"key": key, "value": follower.store[key]})
+    else:
+        return jsonify({"error": "Clave no encontrada"}), 404
 
 if __name__ == "__main__":
+    import sys
     if len(sys.argv) != 2:
         print("Uso: python follower.py <puerto>")
         sys.exit(1)
 
     port = int(sys.argv[1])
-    follower = Follower(port)  # Crear una instancia del follower con el puerto como ID
+    follower = Follower(port)
+    
+    # Iniciar el hilo de impresión
+    threading.Thread(target=follower.print_store, daemon=True).start()
+
     print(f"Follower {follower.id} corriendo en el puerto {port}")
     app.run(port=port)

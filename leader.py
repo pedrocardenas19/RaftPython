@@ -64,5 +64,5 @@ def handle_heartbeat():
 if __name__ == "__main__":
     leader = Leader()  # Crear la instancia de Leader
     threading.Thread(target=leader.send_heartbeats).start()  # Iniciar el envío de heartbeats en un hilo
-    print("Líder corriendo en el puerto 5000")
-    app.run(port=5000)
+    print("Líder corriendo en el puerto 5005")
+    app.run(port=5005)

@@ -41,7 +41,7 @@ class Proxy:
             print(f"Excepción al intentar comunicarse con el follower: {e}")
             return {"error": f"Error al comunicarse con el follower: {str(e)}"}
 
-proxy = Proxy("localhost", 5000, [{"host": "localhost", "port": 5001}, {"host": "localhost", "port": 5002}])
+proxy = Proxy("localhost", 5005, [{"host": "localhost", "port": 5001}, {"host": "localhost", "port": 5002}])
 
 @app.route('/client_write', methods=['POST'])
 def handle_write_request():
