@@ -5,9 +5,13 @@ import json
 def send_post_request(url, data):
     try:
         response = requests.post(url, json=data)
-        return response.json()
+        if response.status_code == 200:
+            return response.json()
+        else:
+            print(f"Error en la solicitud POST a {url}: {response.status_code}")
+            return None
     except Exception as e:
-        print(f"Error sending POST request to {url}: {e}")
+        print(f"Error al intentar hacer POST a {url}: {e}")
         return None
 
 # Enviar una petición GET

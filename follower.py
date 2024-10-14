@@ -7,51 +7,46 @@ class Follower:
     def __init__(self, id):
         self.id = id
         self.term = 0
-        self.logs = []
-        self.leader_id = None
+        self.store = {}  # Diccionario clave-valor para almacenar los datos replicados
 
-    def receive_heartbeat(self, term, leader_id):
-        if term >= self.term:
-            self.term = term
-            self.leader_id = leader_id
-            return True
-        return False
+    def append_entries(self, key, value):
+        # Almacenar la clave-valor replicada por el líder
+        self.store[key] = value
+        print(f"Follower {self.id}: Clave-valor replicada {key}: {value}")
+        return True
 
-    def append_entries(self, term, leader_id, entries):
-        if term >= self.term:
-            self.term = term
-            self.leader_id = leader_id
-            self.logs = entries
-            print(f"Follower {self.id}: Logs actualizados desde el líder {self.leader_id}")
-            return True
-        return False
+    def get_data(self, key):
+        # Devolver el valor asociado a la clave si existe
+        return {"key": key, "value": self.store.get(key, "Clave no encontrada")}
 
-    def get_data(self):
-        return {"logs": self.logs}
-
-follower = Follower(2)
-
-@app.route('/heartbeat', methods=['POST'])
-def handle_heartbeat():
-    data = request.json
-    success = follower.receive_heartbeat(data['term'], data['leader_id'])
-    return jsonify({"success": success})
+follower = None  # Variable global para la instancia del follower
 
 @app.route('/append_entries', methods=['POST'])
 def handle_append_entries():
     data = request.json
-    success = follower.append_entries(data['term'], data['leader_id'], data['entries'])
+    key = data.get("key")
+    value = data.get("value")
+    success = follower.append_entries(key, value)
     return jsonify({"success": success})
 
 @app.route('/read_data', methods=['GET'])
 def handle_read_request():
-    logs = follower.get_data()
-    return jsonify(logs)
+    key = request.args.get("key")
+    response = follower.get_data(key)
+    return jsonify(response)
+
+@app.route('/heartbeat', methods=['POST'])
+def handle_heartbeat():
+    data = request.json
+    print(f"Follower {follower.id} recibió heartbeat de líder {data.get('leader_id')} en término {data.get('term')}")
+    return jsonify({"success": True})
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-        print("Usage: python follower.py <port>")
+        print("Uso: python follower.py <puerto>")
         sys.exit(1)
 
     port = int(sys.argv[1])
+    follower = Follower(port)  # Crear una instancia del follower con el puerto como ID
+    print(f"Follower {follower.id} corriendo en el puerto {port}")
     app.run(port=port)
