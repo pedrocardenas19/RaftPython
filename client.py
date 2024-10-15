@@ -22,7 +22,7 @@ class Client:
             print("Error en la solicitud de lectura")
 
 if __name__ == "__main__":
-    client = Client('localhost', 5003)  # El proxy escucha en el puerto 5003
+    client = Client('localhost', 5004)  # El proxy escucha en el puerto 5003
     
     while True:
         print("\n¿Qué deseas hacer?")
