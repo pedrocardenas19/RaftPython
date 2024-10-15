@@ -10,6 +10,7 @@ class Proxy:
         self.leader_url = None  # URL del líder actual
         self.leader_id = None  # ID del líder
         self.term = 0  # Término inicial (puedes actualizarlo dinámicamente según tu implementación)
+        self.followers = []  # Lista de followers
 
     def update_leader(self):
         print("Intentando actualizar la información del líder...")
@@ -17,7 +18,7 @@ class Proxy:
             url = f"http://{peer['host']}:{peer['port']}/get_leader"
             print(f"Intentando obtener el líder de {peer['host']}:{peer['port']}")
             try:
-                response = requests.get(url)
+                response = requests.get(url, timeout=2)
                 if response.status_code == 200:
                     data = response.json()
                     leader_id = data.get('leader_id')
@@ -38,117 +39,164 @@ class Proxy:
         self.leader_id = None
         self.term = None
 
+    def update_followers(self):
+        print("Actualizando la información de los nodos...")
+        self.followers = []
+        self.leader_id = None
+        self.leader_url = None
+        self.term = None
+        for peer in self.peers:
+            url = f"http://{peer['host']}:{peer['port']}/status"
+            try:
+                response = requests.get(url, timeout=2)
+                if response.status_code == 200:
+                    data = response.json()
+                    node_id = data.get('node_id')
+                    state = data.get('state')
+                    if state == "leader":
+                        self.leader_id = node_id
+                        self.leader_url = f"http://{peer['host']}:{peer['port']}/append_entries"
+                        self.term = data.get('term')
+                    elif state == "follower":
+                        self.followers.append(peer)
+            except requests.exceptions.RequestException as e:
+                print(f"No se pudo obtener el estado del nodo {peer['id']}: {e}")
+
+
 
 
     def forward_write_request(self, key, value):
         """
         Reenvía una solicitud de escritura al líder.
-        Si no se ha detectado un líder, intenta actualizar la información del líder.
-        Si la solicitud falla, intenta actualizar el líder y reintenta la solicitud.
+        Si falla, actualiza el líder y reintenta la solicitud automáticamente.
         """
-        if not self.leader_url:
-            print("No se ha detectado un líder, actualizando líder...")
-            self.update_leader()
+        max_retries = 2  # Número máximo de reintentos (1 intento inicial + 1 reintento)
+        attempts = 0
 
-        if self.leader_url:
-            print(f"Enviando solicitud de escritura al líder en {self.leader_url}")
-            data = {
-                "term": self.term,        # Usar el término actualizado
-                "leader_id": self.leader_id,  # Usar el ID del líder actualizado
-                "key": key,
-                "value": value
-            }
-            try:
-                response = requests.post(self.leader_url, json=data)
-                if response.status_code == 200:
-                    print(f"Respuesta del líder: {response.json()}")
-                    return response.json()
-                else:
-                    print(f"Error al comunicarse con el líder. Código de estado: {response.status_code}")
-                    # Intentar actualizar el líder y reintentar la solicitud
-                    self.update_leader()
-                    if self.leader_url:
-                        print(f"Reintentando con el nuevo líder en {self.leader_url}")
-                        response = requests.post(self.leader_url, json=data)
-                        if response.status_code == 200:
-                            print(f"Respuesta del nuevo líder: {response.json()}")
-                            return response.json()
-                        else:
-                            print(f"Error al comunicarse con el nuevo líder. Código de estado: {response.status_code}")
-                            return {"error": f"Error al comunicarse con el nuevo líder: {response.status_code}"}
-                    else:
-                        return {"error": "No se pudo encontrar un líder disponible después de actualizar"}
-            except requests.exceptions.RequestException as e:
-                print(f"Excepción al intentar comunicarse con el líder: {e}")
-                # Intentar actualizar el líder y reintentar la solicitud
+        while attempts < max_retries:
+            if not self.leader_url:
+                print("No se ha detectado un líder, actualizando líder...")
                 self.update_leader()
-                if self.leader_url:
-                    print(f"Reintentando con el nuevo líder en {self.leader_url}")
-                    try:
-                        response = requests.post(self.leader_url, json=data)
-                        if response.status_code == 200:
-                            print(f"Respuesta del nuevo líder: {response.json()}")
-                            return response.json()
-                        else:
-                            print(f"Error al comunicarse con el nuevo líder. Código de estado: {response.status_code}")
-                            return {"error": f"Error al comunicarse con el nuevo líder: {response.status_code}"}
-                    except requests.exceptions.RequestException as e:
-                        print(f"Excepción al intentar comunicarse con el nuevo líder: {e}")
-                        return {"error": f"Excepción al intentar comunicarse con el nuevo líder: {str(e)}"}
-                else:
-                    return {"error": "No se pudo encontrar un líder disponible después de actualizar"}
-        else:
-            print("Error: No se pudo encontrar un líder disponible.")
-            return {"error": "No se pudo encontrar un líder disponible"}
+
+            if self.leader_url:
+                print(f"Enviando solicitud de escritura al líder en {self.leader_url}")
+                data = {
+                    "term": self.term,
+                    "leader_id": self.leader_id,
+                    "key": key,
+                    "value": value
+                }
+                try:
+                    response = requests.post(self.leader_url, json=data)
+                    if response.status_code == 200:
+                        print(f"Respuesta del líder: {response.json()}")
+                        return response.json()
+                    else:
+                        print(f"Error al comunicarse con el líder. Código de estado: {response.status_code}")
+                        # Actualizar líder y reintentar
+                        self.update_leader()
+                        attempts += 1
+                except requests.exceptions.RequestException as e:
+                    print(f"Excepción al intentar comunicarse con el líder: {e}")
+                    # Actualizar líder y reintentar
+                    self.update_leader()
+                    attempts += 1
+            else:
+                print("Error: No se pudo encontrar un líder disponible.")
+                return {"error": "No se pudo encontrar un líder disponible"}
+
+        # Si se alcanzó el número máximo de reintentos
+        print("Error: No se pudo completar la solicitud después de varios intentos.")
+        return {"error": "No se pudo completar la solicitud después de varios intentos"}
+
 
 
 
     def forward_read_request(self, key):
         """
         Reenvía una solicitud de lectura a un follower disponible.
-        Si todos los followers están caídos, intenta con el líder.
+        Si falla, reintenta con otros followers. Si todos fallan, intenta con el líder.
+        Si el líder no está disponible, actualiza la información del líder y reintenta.
         """
-        print(f"Intentando enviar solicitud de lectura para la clave: {key}")
+        max_retries = len(self.peers)  # Número máximo de intentos
+        attempts = 0
+        tried_peers = set()
 
-        # Crear una lista de nodos para intentar, excluyendo al líder inicialmente
-        nodes_to_try = [peer for peer in self.peers if peer['id'] != self.leader_id]
+        while attempts < max_retries:
+            # Si la lista de followers está vacía o desactualizada, actualizarla
+            if not self.followers:
+                self.update_followers()
 
-        # Si no hay followers disponibles, agregar el líder a la lista
-        if not nodes_to_try:
-            nodes_to_try = [peer for peer in self.peers if peer['id'] == self.leader_id]
+            # Seleccionar un follower no intentado previamente
+            available_followers = [peer for peer in self.followers if peer['id'] not in tried_peers]
 
-        # Intentar enviar la solicitud de lectura a los nodos disponibles
-        for peer in nodes_to_try:
-            url = f"http://{peer['host']}:{peer['port']}/read_data"
+            if not available_followers:
+                break  # No hay más followers para intentar
+
+            follower = random.choice(available_followers)
+            tried_peers.add(follower['id'])
+            url = f"http://{follower['host']}:{follower['port']}/read_data"
             print(f"Enviando solicitud de lectura a {url} con clave: {key}")
+
             try:
                 response = requests.get(url, params={"key": key}, timeout=2)
                 if response.status_code == 200:
-                    print(f"Respuesta del nodo {peer['id']}: {response.json()}")
+                    print(f"Respuesta del follower {follower['id']}: {response.json()}")
                     return response.json()
                 else:
-                    print(f"Error al comunicarse con el nodo {peer['id']}. Código de estado: {response.status_code}")
+                    print(f"Error al comunicarse con el follower {follower['id']}. Código de estado: {response.status_code}")
+                    attempts += 1
             except requests.exceptions.RequestException as e:
-                print(f"Excepción al intentar comunicarse con el nodo {peer['id']}: {e}")
+                print(f"Excepción al intentar comunicarse con el follower {follower['id']}: {e}")
+                attempts += 1
 
-        # Si ninguna solicitud tuvo éxito, intentar con el líder
+        # Si no se pudo leer de ningún follower, intentar con el líder
         if self.leader_url:
-            print(f"Todos los followers fallaron. Intentando enviar solicitud de lectura al líder en {self.leader_url}")
+            print(f"No se pudo obtener el valor de los followers. Intentando con el líder en {self.leader_url}")
+            read_url = self.leader_url.replace('/append_entries', '/read_data')
             try:
-                # Reemplazamos '/append_entries' por '/read_data' en la URL del líder
-                read_url = self.leader_url.replace('/append_entries', '/read_data')
                 response = requests.get(read_url, params={"key": key}, timeout=2)
                 if response.status_code == 200:
                     print(f"Respuesta del líder: {response.json()}")
                     return response.json()
                 else:
                     print(f"Error al comunicarse con el líder. Código de estado: {response.status_code}")
+                    # Actualizar líder y reintentar una vez
+                    self.update_leader()
+                    if self.leader_url:
+                        read_url = self.leader_url.replace('/append_entries', '/read_data')
+                        print(f"Reintentando con el nuevo líder en {self.leader_url}")
+                        response = requests.get(read_url, params={"key": key}, timeout=2)
+                        if response.status_code == 200:
+                            print(f"Respuesta del nuevo líder: {response.json()}")
+                            return response.json()
+                        else:
+                            print(f"Error al comunicarse con el nuevo líder. Código de estado: {response.status_code}")
+                    else:
+                        print("No se pudo encontrar un líder disponible después de actualizar.")
             except requests.exceptions.RequestException as e:
                 print(f"Excepción al intentar comunicarse con el líder: {e}")
+                # Actualizar líder y reintentar una vez
+                self.update_leader()
+                if self.leader_url:
+                    read_url = self.leader_url.replace('/append_entries', '/read_data')
+                    print(f"Reintentando con el nuevo líder en {self.leader_url}")
+                    try:
+                        response = requests.get(read_url, params={"key": key}, timeout=2)
+                        if response.status_code == 200:
+                            print(f"Respuesta del nuevo líder: {response.json()}")
+                            return response.json()
+                        else:
+                            print(f"Error al comunicarse con el nuevo líder. Código de estado: {response.status_code}")
+                    except requests.exceptions.RequestException as e:
+                        print(f"Excepción al intentar comunicarse con el nuevo líder: {e}")
+                else:
+                    print("No se pudo encontrar un líder disponible después de actualizar.")
 
         # Si todas las solicitudes fallaron, devolver un error al cliente
         print("Error: No se pudo obtener el valor de la clave solicitada.")
         return {"error": "No se pudo obtener el valor de la clave solicitada"}
+
 
 
 # Lista de nodos (peers)

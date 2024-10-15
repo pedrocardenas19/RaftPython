@@ -265,6 +265,16 @@ def get_leader():
     else:
         return jsonify({"leader_id": None, "leader_port": None, "term": None})
 
+@app.route('/status', methods=['GET'])
+def get_status():
+    return jsonify({
+        "node_id": node.id,
+        "state": node.state,
+        "term": node.term,
+        "leader_id": node.leader_id
+    })
+
+
 if __name__ == "__main__":
     if len(sys.argv) != 3:
         print("Uso: python raft_node.py --id=<id> --port=<puerto>")
