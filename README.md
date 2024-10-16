@@ -56,11 +56,12 @@ El cliente permite interactuar con el sistema:
 ---
 
 ## Requisitos Previos
-
-- **Python 3.x**: Asegúrate de tener Python 3 instalado.
+- **Python 3.10**: Asegúrate de tener Python 3.10 instalado.
 - **Librerías Python**:
     - `Flask`: Para crear los servidores HTTP de los nodos y el proxy.
     - `requests`: Para manejar las solicitudes HTTP entre los componentes.
+    - `Werkzeug`: Para el manejo de la infraestructura WSGI en los servidores.
+    - `Flask-Cors`: Para habilitar Cross-Origin Resource Sharing (CORS).
 
 Instala las librerías necesarias ejecutando:
 
