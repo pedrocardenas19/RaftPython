@@ -1,18 +1,21 @@
 from flask import Flask, request, jsonify
 import requests
 import random
+import logging
 
 app = Flask(__name__)
 
 class Proxy:
+    #Constructor -- leader siempre se asigna al primer nodo creado
     def __init__(self, peers):
-        self.peers = peers  # Lista de nodos (peers)
-        self.leader_url = None  # URL del líder actual
-        self.leader_id = None  # ID del líder
-        self.term = 0  # Término inicial (puedes actualizarlo dinámicamente según tu implementación)
-        self.followers = []  # Lista de followers
+        self.peers = peers  
+        self.leader_url = None 
+        self.leader_id = None 
+        self.term = 0  
+        self.followers = []  
 
-    def update_leader(self):
+
+    def update_leader(self):  #Method for updating leader when leader fails or is not available
         print("Intentando actualizar la información del líder...")
         for peer in self.peers:
             url = f"http://{peer['host']}:{peer['port']}/get_leader"
@@ -23,11 +26,11 @@ class Proxy:
                     data = response.json()
                     leader_id = data.get('leader_id')
                     leader_port = data.get('leader_port')
-                    term = data.get('term')  # Obtener el término del líder
+                    term = data.get('term')  
                     if leader_id and leader_port and term:
                         self.leader_url = f"http://{peer['host']}:{leader_port}/append_entries"
                         self.leader_id = leader_id
-                        self.term = term  # Actualizar el término en el proxy
+                        self.term = term  
                         print(f"Líder actualizado: {self.leader_url} con leader_id {self.leader_id} y término {self.term}")
                         return
                     else:
@@ -61,9 +64,6 @@ class Proxy:
                         self.followers.append(peer)
             except requests.exceptions.RequestException as e:
                 print(f"No se pudo obtener el estado del nodo {peer['id']}: {e}")
-
-
-
 
     def forward_write_request(self, key, value):
         """
@@ -200,6 +200,7 @@ class Proxy:
 
 
 # Lista de nodos (peers)
+#Esto toca añadirle las direcciones ip para la conexion en aws.
 peers = [
     {"id": 1, "host": "localhost", "port": 5001},
     {"id": 2, "host": "localhost", "port": 5002},
