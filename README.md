@@ -96,7 +96,6 @@ Cada nodo debe ejecutarse en una terminal separada. A continuación, se muestra 
     
     ```bash
     bash
-    Copiar código
     python raft_node.py --id=1 --port=5001
     
     ```
@@ -105,7 +104,6 @@ Cada nodo debe ejecutarse en una terminal separada. A continuación, se muestra 
     
     ```bash
     bash
-    Copiar código
     python raft_node.py --id=2 --port=5002
     
     ```
@@ -114,7 +112,6 @@ Cada nodo debe ejecutarse en una terminal separada. A continuación, se muestra 
     
     ```bash
     bash
-    Copiar código
     python raft_node.py --id=3 --port=5003
     
     ```
@@ -149,7 +146,6 @@ Al ejecutar `client.py`, verás un menú interactivo:
 
 ```markdown
 markdown
-Copiar código
 Seleccione una opción:
 1. Escribir un valor
 2. Leer un valor
