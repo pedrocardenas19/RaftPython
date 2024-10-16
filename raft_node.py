@@ -5,6 +5,7 @@ import random
 import sys
 import logging
 import requests  # Asegúrate de importar requests si no está ya en tu código
+import logging
 
 app = Flask(__name__)
 

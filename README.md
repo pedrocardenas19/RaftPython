@@ -4,6 +4,8 @@
 
 Este proyecto es una implementación simplificada del algoritmo de consenso **Raft** para un sistema distribuido que maneja operaciones de lectura y escritura de pares clave-valor. El sistema consta de nodos que pueden ser líderes o seguidores, un proxy que actúa como intermediario entre el cliente y los nodos, y un cliente que permite interactuar con el sistema.
 
+En el marco teorico se encuentra, la toma de decisiones, la arquitectura y la investigacion.
+
 ## Tabla de Contenidos
 
 - [Descripción General](https://www.notion.so/T-picos-en-Telem-tica-f062389f972d439aa6c91d71d622c66b?pvs=21)
@@ -56,7 +58,7 @@ El cliente permite interactuar con el sistema:
 ---
 
 ## Requisitos Previos
-- **Python 3.10**: Asegúrate de tener Python 3.10 instalado.
+- **Python 3.10**: Asegúrate de tener Python 3.10 o superior instalado.
 - **Librerías Python**:
     - `Flask`: Para crear los servidores HTTP de los nodos y el proxy.
     - `requests`: Para manejar las solicitudes HTTP entre los componentes.
@@ -67,7 +69,6 @@ Instala las librerías necesarias ejecutando:
 
 ```bash
 bash
-Copiar código
 pip install -r requirements.txt
 
 ```
@@ -80,19 +81,11 @@ pip install -r requirements.txt
     
     ```bash
     bash
-    Copiar código
-    git clone https://github.com/tu_usuario/raft-python.git
-    cd raft-python
+    git clone https://github.com/pedrocardenas19/RaftPython
+    cd RaftPython
     
     ```
     
-2. **Revisa la lista de nodos en los archivos**:
-    
-    Asegúrate de que la lista de peers (nodos) en `raft_node.py` y `proxy.py` sea coherente y refleje los nodos que vas a ejecutar.
-    
-
----
-
 ## Ejecución del Sistema
 
 ### 1. Iniciar los Nodos Raft
@@ -133,8 +126,8 @@ Ejecuta el proxy en otra terminal:
 
 ```bash
 bash
-Copiar código
 python proxy.py
+
 
 ```
 
@@ -144,7 +137,6 @@ En una nueva terminal, ejecuta el cliente:
 
 ```bash
 bash
-Copiar código
 python client.py
 
 ```

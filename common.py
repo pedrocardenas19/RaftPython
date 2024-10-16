@@ -1,6 +1,8 @@
 import requests
 import json
 
+
+'''Functions for comms, sending post and get requests '''
 def send_post_request(url, data):
     try:
         response = requests.post(url, json=data)
