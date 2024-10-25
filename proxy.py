@@ -202,9 +202,9 @@ class Proxy:
 # Lista de nodos (peers)
 #Esto toca añadirle las direcciones ip para la conexion en aws.
 peers = [
-    {"id": 1, "host": "localhost", "port": 5001},
-    {"id": 2, "host": "localhost", "port": 5002},
-    {"id": 3, "host": "localhost", "port": 5003}
+    {"id": 1, "host": "172.31.41.0", "port": 5001},
+    {"id": 2, "host": "172.31.34.27", "port": 5002},
+    {"id": 3, "host": "172.31.41.198", "port": 5003}
 ]
 
 

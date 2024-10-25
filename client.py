@@ -2,6 +2,7 @@ import requests
 import logging
 
 class Client:
+    
     def __init__(self, proxy_host, proxy_port):
         self.proxy_host = proxy_host
         self.proxy_port = proxy_port
@@ -14,6 +15,7 @@ class Client:
         else:
             print("Error en la solicitud de escritura")
 
+
     def send_read_request(self, key):
         url = f"http://{self.proxy_host}:{self.proxy_port}/client_read"
         response = requests.get(url, params={"key": key})
@@ -22,8 +24,10 @@ class Client:
         else:
             print("Error en la solicitud de lectura")
 
+   
 if __name__ == "__main__":
-    client = Client('localhost', 5004)  
+    ip = int(input("Ingrese la ip del servidor: "))
+    client = Client(ip, 5004)  
     
     while True:
         print("\n¿Qué deseas hacer?")
